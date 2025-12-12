@@ -61,31 +61,22 @@ export class EvolutionApiService {
         'Content-Type': 'application/json',
       };
 
-      // Adicionar autenticação - tentar diferentes formatos
+      // Evolution API geralmente usa 'apikey' como header
+      // Tentar formato mais simples primeiro
       if (this.apiKey) {
-        // Formato mais comum: Authorization Bearer
-        headers['Authorization'] = `Bearer ${this.apiKey}`;
-        // Também adicionar como apikey (algumas versões usam isso)
         headers['apikey'] = this.apiKey;
-        // E como X-API-Key (outro formato comum)
-        headers['X-API-Key'] = this.apiKey;
       }
 
-      // Construir URL - algumas versões da Evolution API podem precisar da API key na query string
       const url = `${this.baseUrl}/message/sendText/${encodedInstance}`;
-      const urlWithKey = `${url}${url.includes('?') ? '&' : '?'}apikey=${encodeURIComponent(this.apiKey)}`;
 
       console.log('Sending message via Evolution API:', {
         url,
-        urlWithKey,
         number: formattedNumber,
         message: message.substring(0, 50) + '...',
         instance: encodedInstance,
-        hasApiKey: !!this.apiKey,
       });
 
-      // Tentar primeiro com headers
-      let response = await fetch(url, {
+      const response = await fetch(url, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -93,21 +84,6 @@ export class EvolutionApiService {
           text: message,
         }),
       });
-
-      // Se der 401, tentar com API key na query string
-      if (response.status === 401) {
-        console.log('401 Unauthorized with headers, trying with query parameter...');
-        response = await fetch(urlWithKey, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            number: formattedNumber,
-            text: message,
-          }),
-        });
-      }
 
       const responseText = await response.text();
       console.log('Evolution API response:', response.status, responseText);

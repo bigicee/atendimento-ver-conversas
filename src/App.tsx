@@ -170,61 +170,86 @@ function App() {
         )
       );
 
-      // Tentar enviar via Evolution API
+      // Tentar enviar via Evolution API (opcional - não bloqueia o salvamento)
       if (evolutionApi.isConfigured()) {
-        try {
-          const result = await evolutionApi.sendTextMessage({
-            phoneNumber: selectedConversation.phone_number,
-            message: content,
-          });
-
-          if (!result.success) {
-            console.error('Failed to send via Evolution API:', result.error);
-            messageStatus = 'failed';
-            // Atualizar status da mensagem otimista
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === messageId ? { ...msg, status: 'failed' } : msg
-              )
-            );
-          } else {
+        // Enviar em background, não bloquear o salvamento
+        evolutionApi.sendTextMessage({
+          phoneNumber: selectedConversation.phone_number,
+          message: content,
+        }).then((result) => {
+          if (result.success) {
             messageStatus = 'sent';
-            // Atualizar status da mensagem otimista
-            setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === messageId ? { ...msg, status: 'sent' } : msg
-              )
-            );
+            // Atualizar status da mensagem no banco
+            supabase
+              .from('messages')
+              .update({ status: 'sent' })
+              .eq('id', messageId)
+              .then(() => {
+                // Atualizar no estado local
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === messageId ? { ...msg, status: 'sent' } : msg
+                  )
+                );
+              });
+          } else {
+            console.warn('Evolution API failed (message still saved):', result.error);
+            messageStatus = 'failed';
+            // Atualizar status da mensagem no banco
+            supabase
+              .from('messages')
+              .update({ status: 'failed' })
+              .eq('id', messageId)
+              .then(() => {
+                // Atualizar no estado local
+                setMessages((prev) =>
+                  prev.map((msg) =>
+                    msg.id === messageId ? { ...msg, status: 'failed' } : msg
+                  )
+                );
+              });
           }
-        } catch (error) {
-          console.error('Error sending via Evolution API:', error);
+        }).catch((error) => {
+          console.warn('Evolution API error (message still saved):', error);
           messageStatus = 'failed';
-          setMessages((prev) =>
-            prev.map((msg) =>
-              msg.id === messageId ? { ...msg, status: 'failed' } : msg
-            )
-          );
-        }
+          // Atualizar status da mensagem no banco
+          supabase
+            .from('messages')
+            .update({ status: 'failed' })
+            .eq('id', messageId)
+            .then(() => {
+              // Atualizar no estado local
+              setMessages((prev) =>
+                prev.map((msg) =>
+                  msg.id === messageId ? { ...msg, status: 'failed' } : msg
+                )
+              );
+            });
+        });
       }
 
-      // Salvar no banco de dados
+      // Salvar no banco de dados (sempre salvar, mesmo se Evolution API falhar)
       const { data: savedMessage, error: messageError } = await supabase
         .from('messages')
         .insert({
+          id: messageId, // Usar o ID que criamos para facilitar atualização depois
           conversation_id: selectedConversation.id,
           content,
           sender_type: 'agent',
           sender_name: 'Atendente',
           message_type: 'text',
-          status: messageStatus,
+          status: messageStatus, // Pode ser 'sent' ou 'failed'
         })
         .select()
         .single();
 
       if (messageError) {
-        // Se houver erro, remover mensagem otimista e mostrar erro
+        console.error('Error saving message to database:', messageError);
+        // Se houver erro ao salvar, remover mensagem otimista
         setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-        throw messageError;
+        // Mostrar erro ao usuário de forma mais amigável
+        alert('Erro ao salvar mensagem. Tente novamente.');
+        return;
       }
 
       // Substituir mensagem otimista pela mensagem real do banco

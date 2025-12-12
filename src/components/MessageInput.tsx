@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Send, Loader2 } from 'lucide-react';
 
 interface MessageInputProps {
   onSendMessage: (content: string) => Promise<void>;
@@ -34,40 +33,43 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-gray-200 bg-white p-4">
-      <div className="flex items-end gap-3 max-w-4xl mx-auto">
-        <div className="flex-1 relative">
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Digite sua mensagem..."
-            disabled={disabled || isSending}
-            className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none disabled:bg-gray-50 disabled:cursor-not-allowed transition-shadow"
-            rows={1}
-            style={{
-              minHeight: '48px',
-              maxHeight: '120px',
-            }}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = 'auto';
-              target.style.height = Math.min(target.scrollHeight, 120) + 'px';
-            }}
-          />
-        </div>
+    <footer className="bg-white dark:bg-gray-900/30 p-4 border-t border-gray-200 dark:border-gray-800">
+      <form onSubmit={handleSubmit} className="flex items-center gap-2">
+        <button
+          type="button"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+          title="Adicionar reação"
+        >
+          <span className="material-symbols-outlined">add_reaction</span>
+        </button>
+        <button
+          type="button"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+          title="Anexar arquivo"
+        >
+          <span className="material-symbols-outlined">attach_file</span>
+        </button>
+        <input
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Digite uma mensagem..."
+          disabled={disabled || isSending}
+          type="text"
+          className="w-full h-10 bg-gray-100 dark:bg-gray-800 border-transparent rounded-lg focus:ring-primary focus:border-primary text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+        />
         <button
           type="submit"
           disabled={!message.trim() || isSending || disabled}
-          className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl hover:from-emerald-600 hover:to-teal-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-sm hover:shadow-md"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-white disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90"
         >
           {isSending ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
           ) : (
-            <Send className="w-5 h-5" />
+            <span className="material-symbols-outlined">send</span>
           )}
         </button>
-      </div>
-    </form>
+      </form>
+    </footer>
   );
 }

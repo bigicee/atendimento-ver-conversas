@@ -63,6 +63,7 @@ export function MessageList({ messages }: MessageListProps) {
           fileName = `documento_${messageId}`;
         }
       } else if (msg.imageMessage) {
+        // Formatos aceitos pelo WhatsApp: JPEG, PNG, GIF, WEBP
         const mimeType = msg.imageMessage.mimetype || 'image/jpeg';
         const mimeToExt: Record<string, string> = {
           'image/jpeg': 'jpg',
@@ -70,33 +71,30 @@ export function MessageList({ messages }: MessageListProps) {
           'image/png': 'png',
           'image/gif': 'gif',
           'image/webp': 'webp',
-          'image/bmp': 'bmp',
         };
         extension = mimeToExt[mimeType] || 'jpg';
         fileName = `imagem_${messageId}`;
       } else if (msg.videoMessage) {
+        // Formatos aceitos pelo WhatsApp: MP4, 3GP
         const mimeType = msg.videoMessage.mimetype || 'video/mp4';
         const mimeToExt: Record<string, string> = {
           'video/mp4': 'mp4',
-          'video/quicktime': 'mov',
-          'video/x-msvideo': 'avi',
-          'video/x-matroska': 'mkv',
-          'video/webm': 'webm',
           'video/3gpp': '3gp',
+          'video/3gp': '3gp',
         };
         extension = mimeToExt[mimeType] || 'mp4';
         fileName = `video_${messageId}`;
       } else if (msg.audioMessage) {
+        // Formatos aceitos pelo WhatsApp: OGG/OPUS (nativo), MP3, AAC, AMR
         const mimeType = msg.audioMessage.mimetype || 'audio/ogg; codecs=opus';
         const mimeToExt: Record<string, string> = {
-          'audio/mpeg': 'mp3',
-          'audio/mp3': 'mp3',
           'audio/ogg': 'ogg',
           'audio/ogg; codecs=opus': 'ogg',
+          'audio/opus': 'ogg',
+          'audio/mpeg': 'mp3',
+          'audio/mp3': 'mp3',
           'audio/aac': 'aac',
-          'audio/wav': 'wav',
-          'audio/webm': 'webm',
-          'audio/x-m4a': 'm4a',
+          'audio/amr': 'amr',
         };
         extension = mimeToExt[mimeType] || 'ogg';
         fileName = `audio_${messageId}`;
@@ -114,13 +112,13 @@ export function MessageList({ messages }: MessageListProps) {
       fileName = typeDefaults[message.message_type] || 'arquivo';
     }
 
-    // Se não encontrou extensão, usar padrão baseado no tipo
+    // Se não encontrou extensão, usar padrão baseado no tipo (formatos aceitos pelo WhatsApp)
     if (!extension) {
       const typeDefaults: Record<string, string> = {
-        image: 'jpg',
-        video: 'mp4',
-        audio: 'mp3',
-        document: 'bin',
+        image: 'jpg',      // JPEG é o padrão do WhatsApp
+        video: 'mp4',      // MP4 é o padrão do WhatsApp
+        audio: 'ogg',      // OGG/OPUS é o formato nativo do WhatsApp
+        document: 'bin',   // Documentos podem ter qualquer extensão
       };
       extension = typeDefaults[message.message_type] || 'bin';
     }
@@ -146,27 +144,23 @@ export function MessageList({ messages }: MessageListProps) {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-6 bg-gradient-to-b from-gray-50 to-white">
-      <div className="max-w-4xl mx-auto space-y-4">
+    <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex flex-col gap-4">
         {messages.map((message) => {
           const isAgent = message.sender_type === 'agent';
           return (
             <div
               key={message.id}
-              className={`flex ${isAgent ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}
+              className={`flex items-end gap-2 max-w-lg ${isAgent ? 'self-end' : ''}`}
             >
-              <div
-                className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm ${
-                  isAgent
-                    ? 'bg-gradient-to-br from-emerald-500 to-teal-600 text-white'
-                    : 'bg-white border border-gray-200 text-gray-900'
-                }`}
-              >
-                {!isAgent && message.sender_name && (
-                  <div className="text-xs font-semibold text-emerald-600 mb-1">
-                    {message.sender_name}
-                  </div>
-                )}
+              <div className={`flex flex-col gap-1 ${isAgent ? 'items-end' : ''}`}>
+                <div
+                  className={`rounded-lg shadow-sm ${
+                    isAgent
+                      ? 'rounded-br-none bg-primary/90 dark:bg-primary text-white'
+                      : 'rounded-bl-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200'
+                  } p-3`}
+                >
 
                 {message.message_type !== 'text' && message.media_url && (
                   <div className="mb-3">
@@ -186,14 +180,14 @@ export function MessageList({ messages }: MessageListProps) {
                             }
                           }}
                         />
-                        <div className="hidden items-center justify-center gap-2 p-4 bg-gray-100 rounded-lg border border-gray-200">
+                        <div className="hidden items-center justify-center gap-2 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                           <Image className="w-5 h-5 text-gray-400" />
                           <div className="flex items-center gap-3">
                             <a
                               href={message.media_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                              className={`text-sm flex items-center gap-1 ${isAgent ? 'text-white hover:text-white/80' : 'text-primary hover:text-primary/80'}`}
                             >
                               Abrir imagem
                               <ExternalLink className="w-4 h-4" />
@@ -201,7 +195,7 @@ export function MessageList({ messages }: MessageListProps) {
                             <a
                               href={message.media_url}
                               download={getFileName(message)}
-                              className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                              className={`text-sm flex items-center gap-1 ${isAgent ? 'text-white hover:text-white/80' : 'text-primary hover:text-primary/80'}`}
                             >
                               Baixar imagem
                               <Download className="w-4 h-4" />
@@ -249,7 +243,7 @@ export function MessageList({ messages }: MessageListProps) {
                             href={message.media_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700"
+                            className={`inline-flex items-center gap-2 text-sm ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
                           >
                             <ExternalLink className="w-4 h-4" />
                             Abrir vídeo em nova aba
@@ -257,7 +251,7 @@ export function MessageList({ messages }: MessageListProps) {
                           <a
                             href={message.media_url}
                             download={getFileName(message)}
-                            className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700"
+                            className={`inline-flex items-center gap-2 text-sm ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
                           >
                             <Download className="w-4 h-4" />
                             Baixar vídeo
@@ -267,7 +261,7 @@ export function MessageList({ messages }: MessageListProps) {
                     )}
 
                     {message.message_type === 'audio' && (
-                      <div className="bg-gray-50 rounded-lg p-3">
+                      <div className={`rounded-lg p-3 ${isAgent ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-700'}`}>
                         <audio
                           src={message.media_url}
                           controls
@@ -278,7 +272,7 @@ export function MessageList({ messages }: MessageListProps) {
                         <a
                           href={message.media_url}
                           download={getFileName(message)}
-                          className="mt-2 inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700"
+                          className={`mt-2 inline-flex items-center gap-2 text-sm ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
                         >
                           <Download className="w-4 h-4" />
                           Baixar áudio
@@ -287,10 +281,10 @@ export function MessageList({ messages }: MessageListProps) {
                     )}
 
                     {message.message_type === 'document' && (
-                      <div className={`flex items-center gap-3 p-3 rounded-lg ${isAgent ? 'bg-white/10' : 'bg-gray-50'}`}>
-                        <FileText className={`w-8 h-8 ${isAgent ? 'text-white' : 'text-emerald-600'}`} />
+                      <div className={`flex items-center gap-3 p-3 rounded-lg ${isAgent ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                        <FileText className={`w-8 h-8 ${isAgent ? 'text-white' : 'text-primary'}`} />
                         <div className="flex-1 min-w-0">
-                          <p className={`text-sm font-medium truncate ${isAgent ? 'text-white' : 'text-gray-900'}`}>
+                          <p className={`text-sm font-medium truncate ${isAgent ? 'text-white' : 'text-gray-900 dark:text-gray-200'}`}>
                             {message.content || getFileName(message)}
                           </p>
                           <a
@@ -298,7 +292,7 @@ export function MessageList({ messages }: MessageListProps) {
                             target="_blank"
                             rel="noopener noreferrer"
                             download={getFileName(message)}
-                            className={`inline-flex items-center gap-2 text-xs mt-1 ${isAgent ? 'text-white/80 hover:text-white' : 'text-emerald-600 hover:text-emerald-700'}`}
+                            className={`inline-flex items-center gap-2 text-xs mt-1 ${isAgent ? 'text-white/80 hover:text-white' : 'text-primary hover:text-primary/80'}`}
                           >
                             <Download className="w-3 h-3" />
                             Baixar documento
@@ -316,15 +310,13 @@ export function MessageList({ messages }: MessageListProps) {
                 )}
 
                 {message.content && message.message_type !== 'text' && message.content !== '[Imagem]' && message.content !== '[Vídeo]' && message.content !== '[Áudio]' && message.content !== '[Documento]' && (
-                  <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words mt-2 ${isAgent ? 'text-white/90' : 'text-gray-700'}`}>
+                  <p className={`text-sm leading-relaxed whitespace-pre-wrap break-words mt-2 ${isAgent ? 'text-white/90' : 'text-gray-700 dark:text-gray-300'}`}>
                     {message.content}
                   </p>
                 )}
-
-                <div className={`flex items-center gap-1 justify-end mt-1 text-xs ${
-                  isAgent ? 'text-white/80' : 'text-gray-500'
-                }`}>
-                  <span>{formatTime(message.created_at)}</span>
+                </div>
+                <div className={`flex items-center gap-1 text-xs px-1 ${isAgent ? 'justify-end' : ''}`}>
+                  <span className="text-gray-400 dark:text-gray-500">{formatTime(message.created_at)}</span>
                   {isAgent && getStatusIcon(message.status)}
                 </div>
               </div>

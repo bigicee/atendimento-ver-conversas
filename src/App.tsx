@@ -165,65 +165,97 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-emerald-50 to-teal-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background-light dark:bg-background-dark flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Carregando...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-96 flex-shrink-0">
-          <ConversationList
-            conversations={conversations}
-            selectedConversationId={selectedConversationId}
-            onSelectConversation={setSelectedConversationId}
-          />
+    <div className="flex h-screen w-full">
+      {/* SideNavBar */}
+      <aside className="flex h-full w-20 flex-col items-center bg-white dark:bg-gray-900/30 border-r border-gray-200 dark:border-gray-800 py-4">
+        <div className="flex flex-col items-center gap-8">
+          <div className="bg-gradient-to-br from-primary to-blue-600 aspect-square rounded-full size-10 flex items-center justify-center text-white font-bold">
+            <span className="text-lg">CA</span>
+          </div>
+          <nav className="flex flex-col gap-4">
+            <a className="flex items-center justify-center p-3 rounded-lg bg-primary/20 text-primary" href="#" title="Caixa de Entrada">
+              <span className="material-symbols-outlined">inbox</span>
+            </a>
+            <a className="flex items-center justify-center p-3 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" href="#" title="Contatos">
+              <span className="material-symbols-outlined">group</span>
+            </a>
+            <a className="flex items-center justify-center p-3 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" href="#" title="Relatórios">
+              <span className="material-symbols-outlined">bar_chart</span>
+            </a>
+            <a className="flex items-center justify-center p-3 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" href="#" title="IA">
+              <span className="material-symbols-outlined">smart_toy</span>
+            </a>
+            <a className="flex items-center justify-center p-3 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" href="#" title="Configurações">
+              <span className="material-symbols-outlined">settings</span>
+            </a>
+          </nav>
         </div>
+      </aside>
 
-        <div className="flex-1 flex flex-col bg-white">
-          {selectedConversation ? (
-            <>
-              <div className="border-b border-gray-200 p-4 bg-white shadow-sm">
-                <div className="flex items-center gap-3 max-w-4xl mx-auto">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold">
-                    {selectedConversation.contact_name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-gray-900">
-                      {selectedConversation.contact_name}
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      {selectedConversation.phone_number}
-                    </p>
-                  </div>
+      {/* Conversations List Column */}
+      <ConversationList
+        conversations={conversations}
+        selectedConversationId={selectedConversationId}
+        onSelectConversation={setSelectedConversationId}
+      />
+
+      {/* Main Chat Panel */}
+      <main className="flex h-full flex-1 flex-col bg-gray-100/50 dark:bg-background-dark/50">
+        {selectedConversation ? (
+          <>
+            <header className="flex h-[73px] items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/30 px-6">
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-br from-primary to-blue-600 aspect-square rounded-full size-10 flex items-center justify-center text-white font-semibold">
+                  {selectedConversation.contact_name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h2 className="font-bold text-lg text-gray-900 dark:text-white">
+                    {selectedConversation.contact_name}
+                  </h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {selectedConversation.phone_number}
+                  </p>
                 </div>
               </div>
-
-              <MessageList
-                messages={messages}
-                contactName={selectedConversation.contact_name}
-              />
-
-              <MessageInput onSendMessage={handleSendMessage} />
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-50 to-white">
-              <div className="text-center text-gray-400">
-                <MessageCircle className="w-20 h-20 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium">Selecione uma conversa</p>
-                <p className="text-sm mt-2">
-                  Escolha uma conversa na lista para começar
-                </p>
+              <div className="flex items-center gap-2">
+                <button className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <span className="material-symbols-outlined">search</span>
+                </button>
+                <button className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800">
+                  <span className="material-symbols-outlined">more_vert</span>
+                </button>
               </div>
+            </header>
+
+            <MessageList
+              messages={messages}
+              contactName={selectedConversation.contact_name}
+            />
+
+            <MessageInput onSendMessage={handleSendMessage} />
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center text-gray-400 dark:text-gray-500">
+              <MessageCircle className="w-20 h-20 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">Selecione uma conversa</p>
+              <p className="text-sm mt-2">
+                Escolha uma conversa na lista para começar
+              </p>
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

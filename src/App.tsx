@@ -3,6 +3,7 @@ import { supabase, Conversation, Message } from './lib/supabase';
 import { ConversationList } from './components/ConversationList';
 import { MessageList } from './components/MessageList';
 import { MessageInput } from './components/MessageInput';
+import { AIAssistant } from './components/AIAssistant';
 import { MessageCircle } from 'lucide-react';
 import { evolutionApi } from './services/evolutionApi';
 
@@ -256,6 +257,13 @@ function App() {
           </div>
         )}
       </main>
+
+      {/* AI Assistant Panel */}
+      <AIAssistant
+        selectedConversation={selectedConversation}
+        messages={messages}
+        onSendMessage={handleSendMessage}
+      />
     </div>
   );
 }

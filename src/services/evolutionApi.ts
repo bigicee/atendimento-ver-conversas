@@ -55,20 +55,24 @@ export class EvolutionApiService {
       // Codificar o nome da instância para URL (pode ter caracteres especiais)
       const encodedInstance = encodeURIComponent(instance);
 
+      // Evolution API usa 'apikey' como header de autenticação
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'apikey': this.apiKey,
+      };
+
       console.log('Sending message via Evolution API:', {
         url: `${this.baseUrl}/message/sendText/${encodedInstance}`,
         number: formattedNumber,
         message: message.substring(0, 50) + '...',
+        instance: encodedInstance,
       });
 
       const response = await fetch(
         `${this.baseUrl}/message/sendText/${encodedInstance}`,
         {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: this.apiKey,
-          },
+          headers,
           body: JSON.stringify({
             number: formattedNumber,
             text: message,

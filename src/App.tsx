@@ -260,8 +260,7 @@ function App() {
 
       {/* AI Assistant Panel */}
       <AIAssistant
-        selectedConversation={selectedConversation}
-        messages={messages}
+        selectedConversation={selectedConversation || null}
         onSendMessage={handleSendMessage}
       />
     </div>

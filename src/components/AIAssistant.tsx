@@ -1,4 +1,3 @@
-import { Message } from '../lib/supabase';
 
 interface AIAssistantProps {
   selectedConversation: {
@@ -6,11 +5,10 @@ interface AIAssistantProps {
     contact_name: string;
     phone_number: string;
   } | null;
-  messages: Message[];
   onSendMessage?: (content: string) => Promise<void>;
 }
 
-export function AIAssistant({ selectedConversation, messages, onSendMessage }: AIAssistantProps) {
+export function AIAssistant({ selectedConversation, onSendMessage }: AIAssistantProps) {
   if (!selectedConversation) {
     return (
       <aside className="flex h-full w-full max-w-sm flex-col border-l border-gray-200 dark:border-gray-800 bg-background-light dark:bg-background-dark p-6">
@@ -24,7 +22,6 @@ export function AIAssistant({ selectedConversation, messages, onSendMessage }: A
   }
 
   // Análise básica baseada nas mensagens (pode ser expandida com IA real)
-  const lastMessage = messages[messages.length - 1];
   const sentiment = 'Positivo'; // Placeholder - pode ser calculado com análise de sentimento
   const nextStep = 'Perguntar se restou alguma dúvida.'; // Placeholder
   const leadClassification = 'Quente'; // Placeholder

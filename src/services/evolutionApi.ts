@@ -54,11 +54,19 @@ export class EvolutionApiService {
 
       // Codificar o nome da instância para URL (pode ter caracteres especiais)
       const encodedInstance = encodeURIComponent(instance);
+      
+      // Seguir exatamente o formato da documentação da Evolution API
       const url = `${this.baseUrl}/message/sendText/${encodedInstance}`;
 
       const requestBody = {
         number: formattedNumber,
         text: message,
+      };
+
+      // Headers exatamente como na documentação
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'apikey': this.apiKey,
       };
 
       console.log('Sending message via Evolution API:', {
@@ -67,98 +75,43 @@ export class EvolutionApiService {
         message: message.substring(0, 50) + '...',
         instance: encodedInstance,
         apiKeyLength: this.apiKey.length,
+        headers: { ...headers, apikey: '***' }, // Não logar a API key completa
       });
 
-      // Tentar diferentes formatos de autenticação sequencialmente
-      const authMethods: Array<{
-        name: string;
-        url?: string;
-        headers: Record<string, string>;
-      }> = [
-        // Método 1: Header 'apikey' (mais comum)
-        {
-          name: 'apikey header',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': this.apiKey,
-          },
-        },
-        // Método 2: Header 'Authorization: Bearer'
-        {
-          name: 'Authorization Bearer',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${this.apiKey}`,
-          },
-        },
-        // Método 3: Header 'X-API-Key'
-        {
-          name: 'X-API-Key header',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-Key': this.apiKey,
-          },
-        },
-        // Método 4: Query parameter
-        {
-          name: 'query parameter',
-          url: `${url}?apikey=${encodeURIComponent(this.apiKey)}`,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      ];
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(requestBody),
+      });
 
-      let lastError: Error | null = null;
+      const responseText = await response.text();
+      console.log('Evolution API response:', response.status, responseText.substring(0, 500));
 
-      for (const method of authMethods) {
+      if (!response.ok) {
+        let errorData;
         try {
-          const requestUrl = method.url || url;
-          console.log(`Trying authentication method: ${method.name}`);
-
-          const response = await fetch(requestUrl, {
-            method: 'POST',
-            headers: method.headers,
-            body: JSON.stringify(requestBody),
-          });
-
-          const responseText = await response.text();
-          console.log(`Response (${method.name}):`, response.status, responseText.substring(0, 200));
-
-          if (response.ok) {
-            const data = JSON.parse(responseText);
-            console.log(`✓ Success with method: ${method.name}`);
-            return {
-              success: true,
-              messageId: data.key?.id || data.messageId || data.id,
-            };
-          }
-
-          // Se não for 401, pode ser outro erro válido
-          if (response.status !== 401) {
-            let errorData;
-            try {
-              errorData = JSON.parse(responseText);
-            } catch {
-              errorData = { message: responseText || 'Failed to send message' };
-            }
-            throw new Error(errorData.message || errorData.error || 'Failed to send message');
-          }
-
-          // Se for 401, tentar próximo método
-          lastError = new Error(`Unauthorized with ${method.name}`);
-        } catch (error) {
-          if (error instanceof Error && error.message.includes('Unauthorized')) {
-            lastError = error;
-            continue; // Tentar próximo método
-          }
-          // Se não for erro de autenticação, propagar
-          throw error;
+          errorData = JSON.parse(responseText);
+        } catch {
+          errorData = { message: responseText || 'Failed to send message' };
         }
+        
+        const errorMessage = errorData.message || errorData.error || errorData.response?.message || 'Failed to send message';
+        console.error('Evolution API error details:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
+        
+        throw new Error(errorMessage);
       }
 
-      // Se todos os métodos falharam
-      throw lastError || new Error('All authentication methods failed');
+      const data = JSON.parse(responseText);
+      console.log('✓ Message sent successfully:', data);
+
+      return {
+        success: true,
+        messageId: data.key?.id || data.messageId || data.id,
+      };
     } catch (error) {
       console.error('Error sending message via Evolution API:', error);
       return {

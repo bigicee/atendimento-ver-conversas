@@ -4,7 +4,8 @@ import { ConversationList } from './components/ConversationList';
 import { MessageList } from './components/MessageList';
 import { MessageInput } from './components/MessageInput';
 import { AIAssistant } from './components/AIAssistant';
-import { MessageCircle } from 'lucide-react';
+import { TestPanel } from './components/TestPanel';
+import { MessageCircle, Settings } from 'lucide-react';
 import { evolutionApi } from './services/evolutionApi';
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
   const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTestPanel, setShowTestPanel] = useState(false);
 
   const selectedConversation = conversations.find((c) => c.id === selectedConversationId);
 
@@ -281,12 +283,27 @@ function App() {
             <a className="flex items-center justify-center p-3 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" href="#" title="IA">
               <span className="material-symbols-outlined">smart_toy</span>
             </a>
-            <a className="flex items-center justify-center p-3 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800" href="#" title="Configurações">
-              <span className="material-symbols-outlined">settings</span>
-            </a>
+            <button
+              onClick={() => setShowTestPanel(!showTestPanel)}
+              className={`flex items-center justify-center p-3 rounded-lg ${
+                showTestPanel
+                  ? 'bg-primary/20 text-primary'
+                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+              title="Painel de Teste"
+            >
+              <Settings className="w-6 h-6" />
+            </button>
           </nav>
         </div>
       </aside>
+
+      {showTestPanel ? (
+        <div className="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark">
+          <TestPanel />
+        </div>
+      ) : (
+        <>
 
       {/* Conversations List Column */}
       <ConversationList
@@ -348,6 +365,8 @@ function App() {
         selectedConversation={selectedConversation || null}
         onSendMessage={handleSendMessage}
       />
+        </>
+      )}
     </div>
   );
 }

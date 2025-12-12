@@ -21,6 +21,118 @@ export function MessageList({ messages }: MessageListProps) {
     });
   };
 
+  const getFileName = (message: Message): string => {
+    const metadata = message.metadata as any;
+    const messageId = message.message_id_external || message.id;
+    
+    // Tentar extrair nome do arquivo do metadata
+    let fileName = '';
+    let extension = '';
+
+    if (metadata?.message) {
+      const msg = metadata.message;
+      
+      if (msg.documentMessage) {
+        fileName = msg.documentMessage.fileName || msg.documentMessage.title || '';
+        // Se já tem extensão no nome, usar ela
+        if (fileName && fileName.includes('.')) {
+          return fileName;
+        }
+        // Tentar extrair do mimetype
+        const mimeType = msg.documentMessage.mimetype || '';
+        if (mimeType) {
+          const mimeToExt: Record<string, string> = {
+            'application/pdf': 'pdf',
+            'application/vnd.ms-excel': 'xls',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+            'application/vnd.ms-powerpoint': 'ppt',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+            'application/msword': 'doc',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+            'text/csv': 'csv',
+            'text/plain': 'txt',
+            'application/zip': 'zip',
+            'application/x-rar-compressed': 'rar',
+          };
+          extension = mimeToExt[mimeType] || 'bin';
+        } else {
+          extension = 'bin';
+        }
+        // Se não tem fileName, usar padrão
+        if (!fileName) {
+          fileName = `documento_${messageId}`;
+        }
+      } else if (msg.imageMessage) {
+        const mimeType = msg.imageMessage.mimetype || 'image/jpeg';
+        const mimeToExt: Record<string, string> = {
+          'image/jpeg': 'jpg',
+          'image/jpg': 'jpg',
+          'image/png': 'png',
+          'image/gif': 'gif',
+          'image/webp': 'webp',
+          'image/bmp': 'bmp',
+        };
+        extension = mimeToExt[mimeType] || 'jpg';
+        fileName = `imagem_${messageId}`;
+      } else if (msg.videoMessage) {
+        const mimeType = msg.videoMessage.mimetype || 'video/mp4';
+        const mimeToExt: Record<string, string> = {
+          'video/mp4': 'mp4',
+          'video/quicktime': 'mov',
+          'video/x-msvideo': 'avi',
+          'video/x-matroska': 'mkv',
+          'video/webm': 'webm',
+          'video/3gpp': '3gp',
+        };
+        extension = mimeToExt[mimeType] || 'mp4';
+        fileName = `video_${messageId}`;
+      } else if (msg.audioMessage) {
+        const mimeType = msg.audioMessage.mimetype || 'audio/ogg; codecs=opus';
+        const mimeToExt: Record<string, string> = {
+          'audio/mpeg': 'mp3',
+          'audio/mp3': 'mp3',
+          'audio/ogg': 'ogg',
+          'audio/ogg; codecs=opus': 'ogg',
+          'audio/aac': 'aac',
+          'audio/wav': 'wav',
+          'audio/webm': 'webm',
+          'audio/x-m4a': 'm4a',
+        };
+        extension = mimeToExt[mimeType] || 'ogg';
+        fileName = `audio_${messageId}`;
+      }
+    }
+
+    // Se não encontrou nome do arquivo, usar padrão baseado no tipo
+    if (!fileName) {
+      const typeDefaults: Record<string, string> = {
+        image: 'imagem',
+        video: 'video',
+        audio: 'audio',
+        document: 'documento',
+      };
+      fileName = typeDefaults[message.message_type] || 'arquivo';
+    }
+
+    // Se não encontrou extensão, usar padrão baseado no tipo
+    if (!extension) {
+      const typeDefaults: Record<string, string> = {
+        image: 'jpg',
+        video: 'mp4',
+        audio: 'mp3',
+        document: 'bin',
+      };
+      extension = typeDefaults[message.message_type] || 'bin';
+    }
+
+    // Se o fileName já tem extensão, retornar como está
+    if (fileName.includes('.')) {
+      return fileName;
+    }
+
+    return `${fileName}.${extension}`;
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'sent':
@@ -76,25 +188,45 @@ export function MessageList({ messages }: MessageListProps) {
                         />
                         <div className="hidden items-center justify-center gap-2 p-4 bg-gray-100 rounded-lg border border-gray-200">
                           <Image className="w-5 h-5 text-gray-400" />
-                          <a
-                            href={message.media_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
-                          >
-                            Abrir imagem
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
+                          <div className="flex items-center gap-3">
+                            <a
+                              href={message.media_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                            >
+                              Abrir imagem
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                            <a
+                              href={message.media_url}
+                              download={getFileName(message)}
+                              className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+                            >
+                              Baixar imagem
+                              <Download className="w-4 h-4" />
+                            </a>
+                          </div>
                         </div>
-                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                           <a
                             href={message.media_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="bg-black/50 text-white p-1.5 rounded-full hover:bg-black/70"
                             onClick={(e) => e.stopPropagation()}
+                            title="Abrir em nova aba"
                           >
                             <ExternalLink className="w-4 h-4" />
+                          </a>
+                          <a
+                            href={message.media_url}
+                            download={getFileName(message)}
+                            className="bg-black/50 text-white p-1.5 rounded-full hover:bg-black/70"
+                            onClick={(e) => e.stopPropagation()}
+                            title="Baixar imagem"
+                          >
+                            <Download className="w-4 h-4" />
                           </a>
                         </div>
                       </div>
@@ -112,15 +244,25 @@ export function MessageList({ messages }: MessageListProps) {
                             Seu navegador não suporta vídeo.
                           </video>
                         </div>
-                        <a
-                          href={message.media_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                          Abrir vídeo em nova aba
-                        </a>
+                        <div className="mt-2 flex items-center gap-3">
+                          <a
+                            href={message.media_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                            Abrir vídeo em nova aba
+                          </a>
+                          <a
+                            href={message.media_url}
+                            download={getFileName(message)}
+                            className="inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700"
+                          >
+                            <Download className="w-4 h-4" />
+                            Baixar vídeo
+                          </a>
+                        </div>
                       </div>
                     )}
 
@@ -135,7 +277,7 @@ export function MessageList({ messages }: MessageListProps) {
                         </audio>
                         <a
                           href={message.media_url}
-                          download
+                          download={getFileName(message)}
                           className="mt-2 inline-flex items-center gap-2 text-sm text-emerald-600 hover:text-emerald-700"
                         >
                           <Download className="w-4 h-4" />
@@ -149,13 +291,13 @@ export function MessageList({ messages }: MessageListProps) {
                         <FileText className={`w-8 h-8 ${isAgent ? 'text-white' : 'text-emerald-600'}`} />
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-medium truncate ${isAgent ? 'text-white' : 'text-gray-900'}`}>
-                            {message.content || 'Documento'}
+                            {message.content || getFileName(message)}
                           </p>
                           <a
                             href={message.media_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            download
+                            download={getFileName(message)}
                             className={`inline-flex items-center gap-2 text-xs mt-1 ${isAgent ? 'text-white/80 hover:text-white' : 'text-emerald-600 hover:text-emerald-700'}`}
                           >
                             <Download className="w-3 h-3" />

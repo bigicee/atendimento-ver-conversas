@@ -170,14 +170,38 @@ function App() {
 
       // Tentar enviar via Evolution API
       if (evolutionApi.isConfigured()) {
-        const result = await evolutionApi.sendTextMessage({
-          phoneNumber: selectedConversation.phone_number,
-          message: content,
-        });
+        try {
+          const result = await evolutionApi.sendTextMessage({
+            phoneNumber: selectedConversation.phone_number,
+            message: content,
+          });
 
-        if (!result.success) {
-          console.warn('Failed to send via Evolution API:', result.error);
+          if (!result.success) {
+            console.error('Failed to send via Evolution API:', result.error);
+            messageStatus = 'failed';
+            // Atualizar status da mensagem otimista
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === messageId ? { ...msg, status: 'failed' } : msg
+              )
+            );
+          } else {
+            messageStatus = 'sent';
+            // Atualizar status da mensagem otimista
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === messageId ? { ...msg, status: 'sent' } : msg
+              )
+            );
+          }
+        } catch (error) {
+          console.error('Error sending via Evolution API:', error);
           messageStatus = 'failed';
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === messageId ? { ...msg, status: 'failed' } : msg
+            )
+          );
         }
       }
 

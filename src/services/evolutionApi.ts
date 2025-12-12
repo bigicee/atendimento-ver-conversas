@@ -39,12 +39,30 @@ export class EvolutionApiService {
     }
 
     try {
-      const formattedNumber = phoneNumber.includes('@')
-        ? phoneNumber
-        : `${phoneNumber}@s.whatsapp.net`;
+      // Formatar número: remover caracteres especiais e garantir formato correto
+      let formattedNumber = phoneNumber.replace(/[^\d]/g, ''); // Remove tudo exceto dígitos
+      
+      // Se não começar com código do país, assumir Brasil (55)
+      if (!formattedNumber.startsWith('55') && formattedNumber.length === 11) {
+        formattedNumber = '55' + formattedNumber;
+      }
+      
+      // Adicionar sufixo do WhatsApp se não tiver
+      if (!formattedNumber.includes('@')) {
+        formattedNumber = `${formattedNumber}@s.whatsapp.net`;
+      }
+
+      // Codificar o nome da instância para URL (pode ter caracteres especiais)
+      const encodedInstance = encodeURIComponent(instance);
+
+      console.log('Sending message via Evolution API:', {
+        url: `${this.baseUrl}/message/sendText/${encodedInstance}`,
+        number: formattedNumber,
+        message: message.substring(0, 50) + '...',
+      });
 
       const response = await fetch(
-        `${this.baseUrl}/message/sendText/${instance}`,
+        `${this.baseUrl}/message/sendText/${encodedInstance}`,
         {
           method: 'POST',
           headers: {
@@ -58,16 +76,24 @@ export class EvolutionApiService {
         }
       );
 
+      const responseText = await response.text();
+      console.log('Evolution API response:', response.status, responseText);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to send message');
+        let errorData;
+        try {
+          errorData = JSON.parse(responseText);
+        } catch {
+          errorData = { message: responseText || 'Failed to send message' };
+        }
+        throw new Error(errorData.message || errorData.error || 'Failed to send message');
       }
 
-      const data = await response.json();
+      const data = JSON.parse(responseText);
 
       return {
         success: true,
-        messageId: data.key?.id || data.messageId,
+        messageId: data.key?.id || data.messageId || data.id,
       };
     } catch (error) {
       console.error('Error sending message via Evolution API:', error);

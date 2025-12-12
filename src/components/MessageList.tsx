@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Check, CheckCheck, Image, FileText, Music, Download, ExternalLink } from 'lucide-react';
+import { Check, CheckCheck, Image, FileText, Music, Video, Download, ExternalLink } from 'lucide-react';
 import { Message } from '../lib/supabase';
 
 interface MessageListProps {
@@ -231,32 +231,53 @@ export function MessageList({ messages }: MessageListProps) {
                       : 'rounded-bl-none bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200'
                   } p-3`}
                 >
-                {message.message_type !== 'text' && message.media_url && (
+                {message.message_type !== 'text' && (
                   <div className="mb-3">
-                    {message.message_type === 'image' && (
-                      <div className="relative group">
-                        <div className="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
-                          <img
-                            src={message.media_url}
-                            alt={message.content || 'Imagem'}
-                            className="max-w-full max-h-80 w-auto h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-contain mx-auto"
-                            onClick={() => window.open(message.media_url!, '_blank')}
-                            loading="lazy"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const fallback = target.nextElementSibling as HTMLElement;
-                              if (fallback) {
-                                fallback.style.display = 'flex';
-                              }
-                            }}
-                          />
-                        </div>
+                    {message.message_type === 'image' && (() => {
+                      // Tentar obter URL da mídia do metadata se media_url estiver vazio
+                      const metadata = message.metadata as any;
+                      const imageUrl = message.media_url || metadata?.message?.imageMessage?.url || '';
+                      
+                      if (!imageUrl) {
+                        return (
+                          <div className={`flex items-center gap-3 p-3 rounded-lg ${isAgent ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                            <Image className={`w-6 h-6 ${isAgent ? 'text-white' : 'text-primary'}`} />
+                            <div>
+                              <p className={`text-sm font-medium ${isAgent ? 'text-white' : 'text-gray-900 dark:text-gray-200'}`}>
+                                Imagem
+                              </p>
+                              <p className={`text-xs ${isAgent ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
+                                {message.content || 'Imagem não disponível'}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div className="relative group">
+                          <div className="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                            <img
+                              src={imageUrl}
+                              alt={message.content || 'Imagem'}
+                              className="max-w-full max-h-80 w-auto h-auto rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-contain mx-auto"
+                              onClick={() => window.open(imageUrl, '_blank')}
+                              loading="lazy"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.nextElementSibling as HTMLElement;
+                                if (fallback) {
+                                  fallback.style.display = 'flex';
+                                }
+                              }}
+                            />
+                          </div>
                         <div className="hidden items-center justify-center gap-2 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
                           <Image className="w-5 h-5 text-gray-400" />
                           <div className="flex items-center gap-3">
                             <a
-                              href={message.media_url}
+                              href={imageUrl}
                               target="_blank"
                               rel="noopener noreferrer"
                               className={`text-sm flex items-center gap-1 ${isAgent ? 'text-white hover:text-white/80' : 'text-primary hover:text-primary/80'}`}
@@ -265,7 +286,7 @@ export function MessageList({ messages }: MessageListProps) {
                               <ExternalLink className="w-4 h-4" />
                             </a>
                             <a
-                              href={message.media_url}
+                              href={imageUrl}
                               download={getFileName(message)}
                               className={`text-sm flex items-center gap-1 ${isAgent ? 'text-white hover:text-white/80' : 'text-primary hover:text-primary/80'}`}
                             >
@@ -276,7 +297,7 @@ export function MessageList({ messages }: MessageListProps) {
                         </div>
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                           <a
-                            href={message.media_url}
+                            href={imageUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="bg-black/50 text-white p-1.5 rounded-full hover:bg-black/70"
@@ -286,7 +307,7 @@ export function MessageList({ messages }: MessageListProps) {
                             <ExternalLink className="w-4 h-4" />
                           </a>
                           <a
-                            href={message.media_url}
+                            href={imageUrl}
                             download={getFileName(message)}
                             className="bg-black/50 text-white p-1.5 rounded-full hover:bg-black/70"
                             onClick={(e) => e.stopPropagation()}
@@ -296,78 +317,123 @@ export function MessageList({ messages }: MessageListProps) {
                           </a>
                         </div>
                       </div>
-                    )}
+                      );
+                    })()}
 
-                    {message.message_type === 'video' && (
-                      <div className="relative group">
-                        <div className="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
-                          <video
-                            src={message.media_url}
-                            className="max-w-full max-h-80 w-auto h-auto rounded-lg"
+                    {message.message_type === 'video' && (() => {
+                      const metadata = message.metadata as any;
+                      const videoUrl = message.media_url || metadata?.message?.videoMessage?.url || '';
+                      
+                      if (!videoUrl) {
+                        return (
+                          <div className={`flex items-center gap-3 p-3 rounded-lg ${isAgent ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                            <Video className={`w-6 h-6 ${isAgent ? 'text-white' : 'text-primary'}`} />
+                            <div>
+                              <p className={`text-sm font-medium ${isAgent ? 'text-white' : 'text-gray-900 dark:text-gray-200'}`}>
+                                Vídeo
+                              </p>
+                              <p className={`text-xs ${isAgent ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
+                                {message.content || 'Vídeo não disponível'}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div className="relative group">
+                          <div className="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
+                            <video
+                              src={videoUrl}
+                              className="max-w-full max-h-80 w-auto h-auto rounded-lg"
+                              controls
+                              preload="metadata"
+                              poster=""
+                            >
+                              Seu navegador não suporta vídeo.
+                            </video>
+                          </div>
+                          <div className="mt-2 flex items-center gap-3">
+                            <a
+                              href={videoUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`inline-flex items-center gap-2 text-sm ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                              Abrir vídeo em nova aba
+                            </a>
+                            <a
+                              href={videoUrl}
+                              download={getFileName(message)}
+                              className={`inline-flex items-center gap-2 text-sm ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
+                            >
+                              <Download className="w-4 h-4" />
+                              Baixar vídeo
+                            </a>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {message.message_type === 'audio' && (() => {
+                      const metadata = message.metadata as any;
+                      const audioUrl = message.media_url || metadata?.message?.audioMessage?.url || '';
+                      
+                      if (!audioUrl) {
+                        return (
+                          <div className={`flex items-center gap-3 p-3 rounded-lg ${isAgent ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                            <Music className={`w-6 h-6 ${isAgent ? 'text-white' : 'text-primary'}`} />
+                            <div>
+                              <p className={`text-sm font-medium ${isAgent ? 'text-white' : 'text-gray-900 dark:text-gray-200'}`}>
+                                Áudio
+                              </p>
+                              <p className={`text-xs ${isAgent ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
+                                {message.content || 'Áudio não disponível'}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div className={`rounded-lg p-4 ${isAgent ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-700'}`}>
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className={`p-2 rounded-lg ${isAgent ? 'bg-white/20' : 'bg-primary/10'}`}>
+                              <Music className={`w-5 h-5 ${isAgent ? 'text-white' : 'text-primary'}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium truncate ${isAgent ? 'text-white' : 'text-gray-900 dark:text-gray-200'}`}>
+                                {getFileName(message)}
+                              </p>
+                              <p className={`text-xs ${isAgent ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
+                                Áudio
+                              </p>
+                            </div>
+                          </div>
+                          <audio
+                            src={audioUrl}
                             controls
+                            className="w-full h-10"
                             preload="metadata"
-                            poster=""
                           >
-                            Seu navegador não suporta vídeo.
-                          </video>
-                        </div>
-                        <div className="mt-2 flex items-center gap-3">
+                            Seu navegador não suporta áudio.
+                          </audio>
                           <a
-                            href={message.media_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`inline-flex items-center gap-2 text-sm ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                            Abrir vídeo em nova aba
-                          </a>
-                          <a
-                            href={message.media_url}
+                            href={audioUrl}
                             download={getFileName(message)}
-                            className={`inline-flex items-center gap-2 text-sm ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
+                            className={`mt-3 inline-flex items-center gap-2 text-xs ${isAgent ? 'text-white/80 hover:text-white' : 'text-primary hover:text-primary/80'}`}
                           >
-                            <Download className="w-4 h-4" />
-                            Baixar vídeo
+                            <Download className="w-3 h-3" />
+                            Baixar áudio
                           </a>
                         </div>
-                      </div>
-                    )}
-
-                    {message.message_type === 'audio' && (
-                      <div className={`rounded-lg p-4 ${isAgent ? 'bg-white/10' : 'bg-gray-50 dark:bg-gray-700'}`}>
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className={`p-2 rounded-lg ${isAgent ? 'bg-white/20' : 'bg-primary/10'}`}>
-                            <Music className={`w-5 h-5 ${isAgent ? 'text-white' : 'text-primary'}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm font-medium truncate ${isAgent ? 'text-white' : 'text-gray-900 dark:text-gray-200'}`}>
-                              {getFileName(message)}
-                            </p>
-                            <p className={`text-xs ${isAgent ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
-                              Áudio
-                            </p>
-                          </div>
-                        </div>
-                        <audio
-                          src={message.media_url}
-                          controls
-                          className="w-full h-10"
-                          preload="metadata"
-                        >
-                          Seu navegador não suporta áudio.
-                        </audio>
-                        <a
-                          href={message.media_url}
-                          download={getFileName(message)}
-                          className={`mt-3 inline-flex items-center gap-2 text-xs ${isAgent ? 'text-white/80 hover:text-white' : 'text-primary hover:text-primary/80'}`}
-                        >
-                          <Download className="w-3 h-3" />
-                          Baixar áudio
-                        </a>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {message.message_type === 'document' && (() => {
+                      const metadata = message.metadata as any;
+                      const docUrl = message.media_url || metadata?.message?.documentMessage?.url || '';
                       const docInfo = getDocumentInfo(message);
                       const displayName = message.content && message.content !== '[Documento]' 
                         ? message.content 
@@ -398,16 +464,18 @@ export function MessageList({ messages }: MessageListProps) {
                               {fullFileName}
                               {docInfo.fileSize > 0 && ` • ${formatFileSize(docInfo.fileSize)}`}
                             </p>
-                            <a
-                              href={message.media_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              download={fullFileName}
-                              className={`inline-flex items-center gap-2 text-xs font-medium ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
-                            >
-                              <Download className="w-3 h-3" />
-                              Baixar documento
-                            </a>
+                            {docUrl && (
+                              <a
+                                href={docUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                download={fullFileName}
+                                className={`inline-flex items-center gap-2 text-xs font-medium ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
+                              >
+                                <Download className="w-3 h-3" />
+                                Baixar documento
+                              </a>
+                            )}
                           </div>
                         </div>
                       );

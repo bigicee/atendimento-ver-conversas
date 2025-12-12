@@ -91,6 +91,29 @@ export function MessageList({ messages }: MessageListProps) {
     return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
+  const downloadFile = async (url: string, fileName: string) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to download file');
+      
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      // Fallback: abrir em nova aba
+      window.open(url, '_blank');
+    }
+  };
+
   const getFileName = (message: Message): string => {
     const metadata = message.metadata as any;
     const messageId = message.message_id_external || message.id;
@@ -285,14 +308,17 @@ export function MessageList({ messages }: MessageListProps) {
                               Abrir imagem
                               <ExternalLink className="w-4 h-4" />
                             </a>
-                            <a
-                              href={imageUrl}
-                              download={getFileName(message)}
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                downloadFile(imageUrl, getFileName(message));
+                              }}
                               className={`text-sm flex items-center gap-1 ${isAgent ? 'text-white hover:text-white/80' : 'text-primary hover:text-primary/80'}`}
                             >
                               Baixar imagem
                               <Download className="w-4 h-4" />
-                            </a>
+                            </button>
                           </div>
                         </div>
                         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
@@ -306,15 +332,17 @@ export function MessageList({ messages }: MessageListProps) {
                           >
                             <ExternalLink className="w-4 h-4" />
                           </a>
-                          <a
-                            href={imageUrl}
-                            download={getFileName(message)}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              downloadFile(imageUrl, getFileName(message));
+                            }}
                             className="bg-black/50 text-white p-1.5 rounded-full hover:bg-black/70"
-                            onClick={(e) => e.stopPropagation()}
                             title="Baixar imagem"
                           >
                             <Download className="w-4 h-4" />
-                          </a>
+                          </button>
                         </div>
                       </div>
                       );
@@ -363,14 +391,16 @@ export function MessageList({ messages }: MessageListProps) {
                               <ExternalLink className="w-4 h-4" />
                               Abrir vídeo em nova aba
                             </a>
-                            <a
-                              href={videoUrl}
-                              download={getFileName(message)}
-                              className={`inline-flex items-center gap-2 text-sm ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
-                            >
-                              <Download className="w-4 h-4" />
-                              Baixar vídeo
-                            </a>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              downloadFile(videoUrl, getFileName(message));
+                            }}
+                            className={`inline-flex items-center gap-2 text-sm ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
+                          >
+                            <Download className="w-4 h-4" />
+                            Baixar vídeo
+                          </button>
                           </div>
                         </div>
                       );
@@ -419,14 +449,16 @@ export function MessageList({ messages }: MessageListProps) {
                           >
                             Seu navegador não suporta áudio.
                           </audio>
-                          <a
-                            href={audioUrl}
-                            download={getFileName(message)}
-                            className={`mt-3 inline-flex items-center gap-2 text-xs ${isAgent ? 'text-white/80 hover:text-white' : 'text-primary hover:text-primary/80'}`}
-                          >
-                            <Download className="w-3 h-3" />
-                            Baixar áudio
-                          </a>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            downloadFile(audioUrl, getFileName(message));
+                          }}
+                          className={`mt-3 inline-flex items-center gap-2 text-xs ${isAgent ? 'text-white/80 hover:text-white' : 'text-primary hover:text-primary/80'}`}
+                        >
+                          <Download className="w-3 h-3" />
+                          Baixar áudio
+                        </button>
                         </div>
                       );
                     })()}
@@ -465,16 +497,16 @@ export function MessageList({ messages }: MessageListProps) {
                               {docInfo.fileSize > 0 && ` • ${formatFileSize(docInfo.fileSize)}`}
                             </p>
                             {docUrl && (
-                              <a
-                                href={docUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                download={fullFileName}
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  downloadFile(docUrl, fullFileName);
+                                }}
                                 className={`inline-flex items-center gap-2 text-xs font-medium ${isAgent ? 'text-white/90 hover:text-white' : 'text-primary hover:text-primary/80'}`}
                               >
                                 <Download className="w-3 h-3" />
                                 Baixar documento
-                              </a>
+                              </button>
                             )}
                           </div>
                         </div>

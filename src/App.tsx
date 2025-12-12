@@ -109,7 +109,12 @@ function App() {
         (payload) => {
           const newMessage = payload.new as Message;
           if (newMessage.conversation_id === selectedConversationId) {
-            setMessages((prev) => [...prev, newMessage]);
+            setMessages((prev) => {
+              // Evitar duplicação - verificar se a mensagem já existe
+              const exists = prev.some((msg) => msg.id === newMessage.id);
+              if (exists) return prev;
+              return [...prev, newMessage];
+            });
           }
         }
       )
@@ -124,9 +129,46 @@ function App() {
   const handleSendMessage = async (content: string) => {
     if (!selectedConversation) return;
 
+    const messageId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
     try {
       let messageStatus: 'sent' | 'failed' = 'sent';
 
+      // Criar mensagem otimista (aparece imediatamente)
+      const optimisticMessage: Message = {
+        id: messageId,
+        conversation_id: selectedConversation.id,
+        message_id_external: null,
+        content,
+        sender_type: 'agent',
+        sender_name: 'Atendente',
+        message_type: 'text',
+        media_url: null,
+        status: 'sent',
+        metadata: {},
+        created_at: now,
+      };
+
+      // Adicionar mensagem ao estado imediatamente
+      setMessages((prev) => [...prev, optimisticMessage]);
+
+      // Atualizar conversa localmente
+      setConversations((prev) =>
+        prev.map((conv) =>
+          conv.id === selectedConversation.id
+            ? {
+                ...conv,
+                last_message: content,
+                last_message_at: now,
+              }
+            : conv
+        ).sort((a, b) =>
+          new Date(b.last_message_at).getTime() - new Date(a.last_message_at).getTime()
+        )
+      );
+
+      // Tentar enviar via Evolution API
       if (evolutionApi.isConfigured()) {
         const result = await evolutionApi.sendTextMessage({
           phoneNumber: selectedConversation.phone_number,
@@ -139,27 +181,46 @@ function App() {
         }
       }
 
-      const { error: messageError } = await supabase.from('messages').insert({
-        conversation_id: selectedConversation.id,
-        content,
-        sender_type: 'agent',
-        sender_name: 'Atendente',
-        message_type: 'text',
-        status: messageStatus,
-      });
+      // Salvar no banco de dados
+      const { data: savedMessage, error: messageError } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: selectedConversation.id,
+          content,
+          sender_type: 'agent',
+          sender_name: 'Atendente',
+          message_type: 'text',
+          status: messageStatus,
+        })
+        .select()
+        .single();
 
-      if (messageError) throw messageError;
+      if (messageError) {
+        // Se houver erro, remover mensagem otimista e mostrar erro
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+        throw messageError;
+      }
 
+      // Substituir mensagem otimista pela mensagem real do banco
+      if (savedMessage) {
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === messageId ? savedMessage : msg))
+        );
+      }
+
+      // Atualizar conversa no banco
       await supabase
         .from('conversations')
         .update({
           last_message: content,
-          last_message_at: new Date().toISOString(),
+          last_message_at: now,
         })
         .eq('id', selectedConversation.id);
 
     } catch (error) {
       console.error('Error sending message:', error);
+      // Remover mensagem otimista em caso de erro
+      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
       throw error;
     }
   };

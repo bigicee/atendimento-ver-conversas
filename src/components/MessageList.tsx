@@ -7,7 +7,7 @@ interface MessageListProps {
   contactName: string;
 }
 
-export function MessageList({ messages, contactName }: MessageListProps) {
+export function MessageList({ messages }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
